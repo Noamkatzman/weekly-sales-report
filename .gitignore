@@ -1,0 +1,6 @@
+__pycache__/
+output/
+video/frames-*/
+video/still-*.png
+video/*.webm
+video/*-poster.png

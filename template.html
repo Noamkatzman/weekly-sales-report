@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>דוח מכירות שבועי – $cafe</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --ink: #1f1a16; --muted: #6e645b; --line: #e8e1d8; --paper: #fbf8f4;
+    --accent: #b4532a; --accent-soft: #e9cdbd; --up: #2f7a4f; --down: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; color: var(--ink); }
+  body { font: 13px/1.5 "Segoe UI", Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 210mm; min-height: 297mm; padding: 13mm 14mm 10mm; display: flex; flex-direction: column; gap: 14px; }
+
+  header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 12px; border-bottom: 2px solid var(--ink); }
+  .cafe { font-size: 13px; color: var(--accent); font-weight: 700; letter-spacing: .02em; }
+  h1 { font-size: 30px; line-height: 1.1; margin: 2px 0 0; }
+  .range { text-align: left; color: var(--muted); font-size: 12px; }
+  .range strong { display: block; color: var(--ink); font-size: 16px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .kpi { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; }
+  .kpi .label { color: var(--muted); font-size: 12px; }
+  .kpi .value { font-size: 25px; font-weight: 700; line-height: 1.2; margin: 2px 0; }
+  .chg { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .chg.up { color: var(--up); } .chg.down { color: var(--down); }
+  .kpi .note { font-size: 12px; color: var(--muted); }
+
+  .insights { margin: 0; padding: 12px 16px 12px 14px; list-style: none; border-inline-start: 4px solid var(--accent); background: #fdf3ee; border-radius: 10px 0 0 10px; }
+  .insights li { padding: 2px 0; }
+  .insights li::before { content: "•"; color: var(--accent); font-weight: 700; margin-inline-end: 8px; }
+
+  h2 { font-size: 15px; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: baseline; }
+  h2 small { font-weight: 400; color: var(--muted); font-size: 11px; display: flex; gap: 12px; }
+  .key::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-inline-end: 5px; vertical-align: -1px; }
+  .key.now::before { background: var(--accent); } .key.prev::before { background: var(--accent-soft); }
+
+  svg { width: 100%; height: auto; display: block; font: 11px "Segoe UI", Arial, sans-serif; fill: var(--muted); }
+  svg .now { fill: var(--accent); } svg .prev { fill: var(--accent-soft); }
+  svg .val { fill: var(--ink); font-weight: 600; font-size: 10px; }
+
+  .cols { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: right; font-size: 11px; font-weight: 600; color: var(--muted); padding: 0 6px 5px; border-bottom: 1px solid var(--line); }
+  td { padding: 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  td.num, th.num { text-align: left; white-space: nowrap; }
+  td.rank { color: var(--muted); width: 18px; }
+  .item { font-weight: 600; }
+  .bar { height: 4px; background: var(--accent-soft); border-radius: 2px; margin-top: 4px; }
+
+  .pay { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 7px; }
+  .pay li { display: grid; grid-template-columns: 52px 1fr 34px; align-items: center; gap: 8px; }
+  .track { height: 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+  .track span { display: block; height: 100%; background: var(--accent); }
+
+  footer { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10.5px; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+<main class="page">
+  <header>
+    <div>
+      <div class="cafe">$cafe</div>
+      <h1>דוח מכירות שבועי</h1>
+    </div>
+    <div class="range"><strong>$range</strong>לעומת $prev_range</div>
+  </header>
+
+  <section class="kpis" aria-label="השבוע במספרים">
+    <div class="kpi"><div class="label">הכנסות</div><div class="value">$revenue</div>$revenue_chg</div>
+    <div class="kpi"><div class="label">קבלות</div><div class="value">$receipts</div>$receipts_chg</div>
+    <div class="kpi"><div class="label">קבלה ממוצעת</div><div class="value">$average</div>$average_chg</div>
+    <div class="kpi"><div class="label">החזרים</div><div class="value">$refunds</div><div class="note">$refunds_note</div></div>
+  </section>
+
+  <ul class="insights" aria-label="בקצרה">$insights</ul>
+
+  <section>
+    <h2>הכנסות לפי יום <small><span class="key now">השבוע</span><span class="key prev">שבוע קודם</span></small></h2>
+    $day_chart
+  </section>
+
+  <div class="cols">
+    <section>
+      <h2>הנמכרים ביותר</h2>
+      <table>
+        <thead><tr><th></th><th>פריט</th><th class="num">יחידות</th><th class="num">הכנסות</th><th class="num">שינוי</th></tr></thead>
+        <tbody>$items</tbody>
+      </table>
+    </section>
+    <section>
+      <h2>קבלות לפי שעה</h2>
+      $hour_chart
+      <h2 style="margin-top:16px">אמצעי תשלום</h2>
+      <ul class="pay">$payments</ul>
+    </section>
+  </div>
+
+  <footer><span>$footer</span><span>$cafe</span></footer>
+</main>
+</body>
+</html>

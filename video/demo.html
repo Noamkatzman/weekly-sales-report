@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Weekly sales report demo</title>
+<!--
+  A 14-second silent loop for the portfolio card. Every frame is a pure function
+  of time: render(t) sets the whole scene, so render.mjs can step through it
+  frame by frame. Open with ?lang=he or ?lang=en, and ?t=8 to look at one moment.
+-->
+<style>
+  :root { --bg: #070a14; --ink: #e8ecf6; --muted: #8f99b3; --line: #1d2542; --teal: #3fd3c1; --blue: #7088ff; --peach: #ff9d74; --amber: #f0b429; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 960px; height: 620px; overflow: hidden; background: var(--bg); }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--ink); position: relative; }
+  .grid { position: absolute; inset: 0; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 40px 40px; opacity: .35; mask-image: radial-gradient(ellipse at 50% 60%, #000 30%, transparent 80%); }
+  .glow { position: absolute; width: 700px; height: 500px; left: 130px; top: 140px; background: radial-gradient(closest-side, rgb(63 211 193 / .16), transparent); }
+
+  .caption { position: absolute; top: 26px; inset-inline: 40px; height: 64px; }
+  .cap { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 2px; }
+  .cap .eyebrow { font: 600 12px/1 Consolas, monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--teal); }
+  .cap .line { font-size: 25px; font-weight: 700; letter-spacing: -.01em; }
+  [dir="rtl"] .cap .eyebrow { letter-spacing: .02em; font-family: "Segoe UI", Arial, sans-serif; font-size: 13px; }
+
+  .win { position: absolute; border-radius: 10px; overflow: hidden; box-shadow: 0 30px 60px -20px rgb(0 0 0 / .7), 0 0 0 1px rgb(255 255 255 / .06); }
+  .bar { height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 12px; font: 12px Consolas, monospace; }
+  .bar i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+  .bar span { margin-inline-start: 8px; }
+
+  /* Spreadsheet */
+  .sheet { left: 100px; top: 112px; width: 760px; height: 470px; background: #fff; }
+  .sheet .bar { background: #1f7a4d; color: #e9f5ee; }
+  .sheet .bar i { background: rgb(255 255 255 / .35); }
+  .rows { position: absolute; top: 30px; inset-inline: 0; bottom: 0; overflow: hidden; direction: rtl; }
+  .rows-inner { position: absolute; inset-inline: 0; top: 0; }
+  .r { display: grid; grid-template-columns: 34px 92px 58px 70px 1fr 44px 62px 72px 92px; height: 24px; font-size: 12.5px; color: #222; border-bottom: 1px solid #e3e3e3; }
+  .r > div { padding: 3px 6px; border-inline-start: 1px solid #e3e3e3; white-space: nowrap; overflow: hidden; }
+  .r .n { background: #f3f3f3; color: #888; text-align: center; font-size: 11px; }
+  .r.head > div { font-weight: 700; background: #f3f3f3; }
+  .r.title > div:nth-child(2) { grid-column: 2 / -1; font-weight: 600; }
+  .bad { box-shadow: inset 0 0 0 2px var(--amber); background: rgb(240 180 41 / .14); }
+
+  /* Terminal */
+  .term { left: 180px; top: 150px; width: 600px; height: 330px; background: #0d1222; direction: ltr; }
+  .term .bar { background: #151b30; color: var(--muted); }
+  .term .bar i:nth-child(1) { background: #ff5f57; } .term .bar i:nth-child(2) { background: #febc2e; } .term .bar i:nth-child(3) { background: #28c840; }
+  .term pre { padding: 14px 18px; font: 14px/1.6 Consolas, monospace; color: #c9d1e4; white-space: pre; }
+  .term .p { color: var(--teal); } .term .num { color: var(--peach); } .term .ok { color: #7ee2a8; }
+  .caret { display: inline-block; width: 8px; height: 16px; background: var(--ink); vertical-align: -3px; }
+
+  /* Report */
+  .report { position: absolute; left: 305px; top: 110px; width: 350px; border-radius: 6px; box-shadow: 0 40px 80px -20px rgb(0 0 0 / .8); overflow: hidden; }
+  .report img { width: 350px; display: block; }
+
+  /* Email notification */
+  .mail { position: absolute; top: 120px; width: 330px; background: rgb(22 28 48 / .96); border: 1px solid rgb(255 255 255 / .1); border-radius: 14px; padding: 14px 16px; display: grid; grid-template-columns: 38px 1fr; gap: 12px; box-shadow: 0 30px 60px -15px rgb(0 0 0 / .8); backdrop-filter: blur(8px); }
+  [dir="ltr"] .mail { right: 40px; } [dir="rtl"] .mail { left: 40px; }
+  .mail .ic { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--blue), var(--teal)); display: grid; place-items: center; }
+  .mail .from { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+  .mail .subj { font-size: 14.5px; font-weight: 700; margin: 2px 0 4px; direction: rtl; text-align: start; }
+  [dir="ltr"] .mail .subj { text-align: left; }
+  .mail .body { font-size: 12.5px; color: #c9d1e4; direction: rtl; }
+  [dir="ltr"] .mail .body { text-align: left; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 9px; border-radius: 7px; background: rgb(255 255 255 / .07); font-size: 12px; direction: ltr; }
+  .chip b { color: #ff7b6b; font-size: 10px; }
+</style>
+</head>
+<body>
+<div class="grid"></div><div class="glow"></div>
+
+<div class="caption" id="caption"></div>
+
+<div class="win sheet" id="sheet">
+  <div class="bar"><i></i><i></i><i></i><span>till-export.xlsx</span></div>
+  <div class="rows"><div class="rows-inner" id="rows"></div></div>
+</div>
+
+<div class="win term" id="term">
+  <div class="bar"><i></i><i></i><i></i><span>weekly-sales-report</span></div>
+  <pre id="out"></pre>
+</div>
+
+<div class="report" id="report"><img id="reportImg" src="report.png" alt=""></div>
+
+<div class="mail" id="mail">
+  <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#070a14" stroke-width="2.2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
+  <div>
+    <div class="from"><span id="mailFrom"></span><span id="mailTime"></span></div>
+    <div class="subj">דוח מכירות שבועי – קפה שדרה</div>
+    <div class="body">הכנסות: ₪29,446 (<bdi dir="ltr">+12.6%</bdi>) · 792 קבלות</div>
+    <div class="chip"><b>PDF</b> sales-report-2026-10-10.pdf</div>
+  </div>
+</div>
+
+<script src="rows.js"></script>
+<script>
+const lang = new URLSearchParams(location.search).get("lang") === "en" ? "en" : "he";
+document.documentElement.lang = lang;
+document.body.dir = lang === "he" ? "rtl" : "ltr";
+
+const COPY = {
+  he: [
+    ["לפני", "כל שבוע: ייצוא מהקופה, אלפי שורות לסדר ביד"],
+    ["אחרי", "סקריפט Python מנקה ומסכם הכול לבד"],
+    ["התוצאה", "דוח של עמוד אחד, עם מה שחשוב לבעל העסק"],
+    ["אוטומטי", "ונשלח למייל לבד, כל יום ראשון ב-7:00"],
+  ],
+  en: [
+    ["Before", "Every week: a till export with thousands of rows"],
+    ["After", "A Python script cleans and sums it all"],
+    ["The result", "A one-page report with what the owner needs"],
+    ["Automatic", "Emailed by itself, every Sunday at 7:00"],
+  ],
+}[lang];
+document.getElementById("mailFrom").textContent = lang === "he" ? "דוחות אוטומטיים" : "Automated reports";
+document.getElementById("mailTime").textContent = lang === "he" ? "ראשון 07:00" : "Sun 07:00";
+
+const caption = document.getElementById("caption");
+const caps = COPY.map(([eyebrow, line]) => {
+  const el = document.createElement("div");
+  el.className = "cap";
+  el.innerHTML = `<div class="eyebrow"></div><div class="line"></div>`;
+  el.children[0].textContent = eyebrow;
+  el.children[1].textContent = line;
+  caption.append(el);
+  return el;
+});
+
+// Spreadsheet rows, from the real sample export (the first rows under the title block).
+const rowsEl = document.getElementById("rows");
+const titleRows = [["קופה ראשית - קפה שדרה"], ["הופק: 11/10/2026 06:58"], [""]];
+const head = ["תאריך", "שעה", "מס' קבלה", "פריט", "כמות", "מחיר ליח'", "סה\"כ שורה", "אמצעי תשלום"];
+const variants = new Set(["אקספרסו", "קפה הפוך", "מאצה לאטה", "קרואסון", "בורקס", "טוסט"]);
+let n = 1;
+const badCells = [];
+function addRow(cells, cls = "", bad = []) {
+  const r = document.createElement("div");
+  r.className = "r " + cls;
+  r.innerHTML = `<div class="n">${n++}</div>` + cells.map((c) => `<div>${c ?? ""}</div>`).join("");
+  bad.forEach((i) => badCells.push(r.children[i + 1]));
+  rowsEl.append(r);
+}
+titleRows.forEach((c) => addRow(c, "title"));
+addRow(head, "head");
+{
+  for (const row of window.ROWS) {
+    if (!row) { addRow(Array(8).fill("")); continue; }
+    const item = String(row.item);
+    const bad = [];
+    if (row.textDate) bad.push(0);
+    if (variants.has(item.trim()) || item !== item.trim()) bad.push(3);
+    if (row.total == null) bad.push(6);
+    addRow([row.date, row.time, row.receipt, item, row.qty, row.price, row.total ?? "", row.pay], "", bad);
+  }
+}
+
+const TERM = [
+  ["cmd", "python report.py --send"],
+  ["", "Reading till-export.xlsx"],
+  ["", "  <span class='num'>2,761</span> item lines from 27/09 to 09/10"],
+  ["", "   <span class='num'>394</span>  dates stored as text"],
+  ["", "   <span class='num'>185</span>  item names merged"],
+  ["", "   <span class='num'>120</span>  missing line totals filled"],
+  ["", "    <span class='num'>19</span>  blank rows skipped"],
+  ["", "Week 04/10-10/10: revenue <span class='num'>29,446</span> ILS (<span class='ok'>+12.6%</span>)"],
+  ["", "Report: output/sales-report-2026-10-10.pdf"],
+  ["", "  <span class='ok'>Sent to owner</span>"],
+];
+
+// ---- timing helpers ----
+const clamp = (x) => Math.max(0, Math.min(1, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const out3 = (x) => 1 - Math.pow(1 - x, 3);
+const inOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const set = (el, styles) => Object.assign(el.style, styles);
+const DURATION = 14;
+
+function render(t) {
+  // Captions: each fades and slides in, then out.
+  const capTimes = [[0, 3.3], [3.3, 7.1], [7.1, 10.4], [10.4, 13.6]];
+  // The first caption is already up at 0s and comes back at the end, so the loop has no seam.
+  caps.forEach((el, i) => {
+    const [a, b] = capTimes[i];
+    if (i === 0) {
+      set(el, { opacity: t < b ? 1 - prog(t, b - 0.3, b) : prog(t, 13.4, 14), transform: "none" });
+      return;
+    }
+    const v = out3(prog(t, a, a + 0.45)) * (1 - prog(t, b - 0.3, b));
+    set(el, { opacity: v, transform: `translateY(${(1 - out3(prog(t, a, a + 0.45))) * 12}px)` });
+  });
+
+  // Spreadsheet: scrolls fast, messy cells light up, then steps back.
+  const sheet = document.getElementById("sheet");
+  // Visible from the first frame; fades back in at the end to meet the start of the loop.
+  const late = t > 13;
+  const back = late ? 0 : inOut(prog(t, 3.2, 4.0));
+  const leave = late ? 1 - prog(t, 13.4, 14) : prog(t, 7.0, 7.6);
+  set(sheet, {
+    opacity: (1 - 0.55 * back) * (1 - leave),
+    transform: `scale(${1 - 0.08 * back})`,
+    filter: `blur(${back * 2}px)`,
+  });
+  set(rowsEl, { transform: `translateY(${late ? 0 : -inOut(prog(t, 0.4, 3.0)) * 900}px)` });
+  const hi = prog(t, 1.0, 1.4);
+  badCells.forEach((c) => c.classList.toggle("bad", !late && hi > 0.5));
+
+  // Terminal: types the command, then prints the real output line by line.
+  const term = document.getElementById("term");
+  const tIn = out3(prog(t, 3.3, 3.9));
+  const tOut = prog(t, 7.0, 7.5);
+  set(term, { opacity: tIn * (1 - tOut), transform: `translateY(${(1 - tIn) * 40 - tOut * 20}px) scale(${1 - tOut * 0.05})` });
+  const cmd = TERM[0][1];
+  const typed = Math.floor(prog(t, 3.8, 4.6) * cmd.length);
+  const shown = Math.floor(prog(t, 4.8, 6.6) * (TERM.length - 1) + (t >= 4.8 ? 1 : 0));
+  let text = `<span class="p">$</span> ${cmd.slice(0, typed)}`;
+  if (shown === 0) text += ` <span class="caret" style="opacity:${Math.floor(t * 2.5) % 2 ? 0 : 1}"></span>`;
+  for (let i = 1; i <= Math.min(shown, TERM.length - 1); i++) text += "\n" + TERM[i][1];
+  document.getElementById("out").innerHTML = text;
+
+  // Report: rises in, then slowly comes closer.
+  const report = document.getElementById("report");
+  const rIn = out3(prog(t, 7.1, 7.9));
+  const rOut = prog(t, 13.3, 14);
+  set(report, { opacity: rIn * (1 - rOut), transform: `translateY(${(1 - rIn) * 60}px) scale(${0.96 + 0.04 * rIn + 0.03 * inOut(prog(t, 7.9, 13.3))})` });
+
+  // Email: slides in from the side.
+  const mail = document.getElementById("mail");
+  const mIn = out3(prog(t, 10.6, 11.2));
+  const dir = lang === "he" ? -1 : 1;
+  set(mail, { opacity: mIn * (1 - rOut), transform: `translateX(${dir * (1 - mIn) * 60}px)` });
+}
+window.render = render;
+window.DURATION = DURATION;
+render(Number(new URLSearchParams(location.search).get("t") || 0));
+window.ready = true;
+</script>
+</body>
+</html>
